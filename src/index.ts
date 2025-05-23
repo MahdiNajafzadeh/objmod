@@ -7,47 +7,55 @@ type Primitive = string | number | boolean | null | undefined | symbol | bigint;
  * Recursive type that extracts deep keys from an object as dot-separated strings.
  * For primitive values, it returns never.
  * For objects, it returns keys and nested keys in "key" or "key.subkey" format.
- * 
+ *
  * @template T The object type to extract keys from.
  */
-export type DeepKeyOf<T> = T extends Primitive ? never : {
-	[K in keyof T & string]: T[K] extends Primitive
-	? K
-	: `${K}` | `${K}.${DeepKeyOf<T[K]>}`
-}[keyof T & string];
+export type DeepKeyOf<T> = T extends Primitive
+	? never
+	: {
+			[K in keyof T & string]: T[K] extends Primitive
+				? K
+				: `${K}` | `${K}.${DeepKeyOf<T[K]>}`;
+		}[keyof T & string];
 /**
  * Recursively gets the type of the value located at the given dot-separated path in an object.
  * Returns unknown if the path does not exist.
- * 
+ *
  * @template T The object type.
  * @template P The path string, e.g. "a.b.c".
  */
-export type PathValue<T, P extends string> =
-	P extends `${infer Key}.${infer Rest}`
+export type PathValue<
+	T,
+	P extends string,
+> = P extends `${infer Key}.${infer Rest}`
 	? Key extends keyof T
-	? PathValue<T[Key], Rest>
-	: unknown
+		? PathValue<T[Key], Rest>
+		: unknown
 	: P extends keyof T
-	? T[P]
-	: unknown;
+		? T[P]
+		: unknown;
 /**
  * Retrieves a nested value from an object given a dot-separated path.
  * If the path does not exist, returns the default value if provided.
- * 
+ *
  * @template T The type of the object.
  * @template P A valid deep key path within T.
- * 
+ *
  * @param {T} obj The object to get the value from.
  * @param {P} path The dot-separated path string.
  * @param {PathValue<T, P>} [def] Default value to return if the path is not found.
  * @returns {PathValue<T, P>} The value at the given path, or the default value.
  */
-export function get<T, P extends DeepKeyOf<T>>(obj: T, path: P, def?: PathValue<T, P>): PathValue<T, P> {
-	const address = path.split('.') as string[];
+export function get<T, P extends DeepKeyOf<T>>(
+	obj: T,
+	path: P,
+	def?: PathValue<T, P>,
+): PathValue<T, P> {
+	const address = path.split(".") as string[];
 	let value: unknown = obj;
 
 	for (const key of address) {
-		if (typeof value !== 'object' || value === null || !(key in value)) {
+		if (typeof value !== "object" || value === null || !(key in value)) {
 			return def as PathValue<T, P>;
 		}
 		value = (value as Record<string, unknown>)[key];
@@ -57,58 +65,98 @@ export function get<T, P extends DeepKeyOf<T>>(obj: T, path: P, def?: PathValue<
 /**
  * Sets a value at the given dot-separated path in an object.
  * Creates intermediate objects if they don't exist.
- * 
+ *
  * @template T The object type, must be an object.
- * 
+ *
  * @param {T} obj The object to set the value in.
  * @param {string} path The dot-separated path string.
  * @param {unknown} val The value to set.
  * @returns {boolean} True if the value was successfully set, false otherwise (e.g. empty path).
  */
-export function set<T extends object>(obj: T, path: string, val: unknown): boolean {
+export function set<T extends object>(
+	obj: T,
+	path: string,
+	val: unknown,
+): boolean {
 	if (!path) return false;
 
-	const address = path.split('.').filter(Boolean);
+	const address = path.split(".").filter(Boolean);
 	if (address.length === 0) return false;
 
 	let value: Record<string, unknown> = obj as Record<string, unknown>;
 
 	for (let i = 0; i < address.length - 1; i++) {
-		const key = address[i]!;
-		if (typeof value[key] !== 'object' || value[key] === null) {
+		const key = address[i] as string;
+		if (typeof value[key] !== "object" || value[key] === null) {
 			value[key] = {};
 		}
 		value = value[key] as Record<string, unknown>;
 	}
-	const lastKey = address[address.length - 1]!;
+	const lastKey = address[address.length - 1] as string;
 	value[lastKey] = val;
 	return true;
 }
 /**
  * Checks if a nested path exists in an object.
- * 
+ *
  * @template T The object type.
  * @template P A valid deep key path within T.
- * 
+ *
  * @param {T} obj The object to check.
  * @param {P} path The dot-separated path string.
  * @returns {boolean} True if the path exists, false otherwise.
  */
 export function has<T, P extends DeepKeyOf<T>>(obj: T, path: P): boolean {
-	const address = path.split('.') as string[];
+	const address = path.split(".") as string[];
 	let value: unknown = obj;
 
 	for (const key of address) {
-		if (typeof value !== 'object' || value === null || !(key in value)) {
+		if (typeof value !== "object" || value === null || !(key in value)) {
 			return false;
 		}
 		value = (value as Record<string, unknown>)[key];
 	}
 	return true;
 }
+/**
+ * scan object
+ *
+ * @param obj object that must be scan
+ * @param prefix is parameter for recursive calling
+ * @param map Key-Value Map for store data
+ * @returns
+ */
+export function scan<T extends Record<string, unknown>, P extends DeepKeyOf<T>>(
+	obj: T = {} as T,
+	prefix = "",
+	map = new Map<P, PathValue<T, P>>(),
+) {
+	for (const [K, V] of Object.entries(obj)) {
+		if (V && typeof V === "object") {
+			scan(V as T, prefix ? `${prefix}.${K}` : K, map);
+		} else {
+			map.set(K as P, V as PathValue<T, P>);
+		}
+	}
+	return map;
+}
 
-export default {
-	get,
-	set,
-	has
+/**
+ * 
+ * @param source 
+ * @param target 
+ * @returns 
+ */
+export function merge<
+	TSource extends Record<string, unknown>,
+	PSource extends DeepKeyOf<TSource>,
+	TTarget extends Record<string, unknown>,
+	PTarget extends DeepKeyOf<TSource>,
+>(source: TSource, target: TTarget) {
+	const map = scan(source);
+	for (const [K, V] of map.entries()) set(target, K, V);
+	return target as Record<
+		PSource & PTarget,
+		PathValue<TSource & TTarget, PSource & PTarget>
+	>;
 }
