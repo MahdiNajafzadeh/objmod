@@ -1,94 +1,142 @@
-# objmod - Deep Object Utilities for TypeScript
+# objmod
 
-A powerful and type-safe TypeScript utility library to **get**, **set**, and **check** deeply nested properties in objects using dot-separated string paths. Perfect for complex data structures with full compile-time type inference!
-
----
+A lightweight and type-safe utility module for working with deeply nested object properties using dot-separated string paths in TypeScript.
 
 ## Features
 
-- **Type-safe deep key extraction** with `DeepKeyOf<T>`: Get all valid nested keys as dot-separated strings.
-- **Typed value retrieval** using `get(obj, path, default?)` that respects the exact type at the given path.
-- **Deep setting** of nested properties with automatic creation of intermediate objects via `set(obj, path, value)`.
-- **Existence check** for any nested path with `has(obj, path)`.
-- Full support for primitive and complex nested objects with zero runtime surprises.
-- Written entirely in TypeScript with comprehensive typing.
-
----
+* 🔍 **Access** deeply nested values with full TypeScript type safety.
+* 🛠️ **Set**, **delete**, and **check** nested values.
+* 🔁 **Scan** object trees and iterate over all deep paths.
+* 🧠 **Type inference** for path strings and returned values.
+* ⚡ **Caching** support for faster repeated access.
+* 🧹 Functional utilities like `map`, `filter`, and `foreach`.
 
 ## Installation
 
 ```bash
-npm install objmod
-````
+npm install your-package-name
+```
 
----
+Or just copy and paste the module into your project as it's completely dependency-free.
 
 ## Usage
 
+### Basic API
+
+#### `get<T, P>(obj: T, path: P, def?: V): V`
+
+Get a nested value from an object.
+
 ```ts
-import objmod from 'objmod';
-
-const data = {
-  user: {
-    profile: {
-      name: 'Mahdi',
-      age: 30
-    }
-  }
-};
-
-// Get a nested value (typed as string)
-const userName = objmod.get(data, 'user.profile.name'); // "Mahdi"
-
-// Set a nested value (creates intermediate objects if needed)
-objmod.set(data, 'user.profile.location.city', 'Tehran');
-
-// Check if nested path exists
-const hasAge = objmod.has(data, 'user.profile.age'); // true
-
-// Get with default value if path is missing
-const country = objmod.get(data, 'user.profile.location.country', 'Unknown'); // "Unknown"
+get({ a: { b: { c: 42 } } }, "a.b.c"); // 42
 ```
 
----
+#### `set<T, P>(obj: T, path: P, value: V): void`
 
-## API
+Set a value at a given nested path.
+
+```ts
+set(obj, "a.b.c", 100);
+```
+
+#### `has<T, P>(obj: T, path: P): boolean`
+
+Check if a nested path exists.
+
+```ts
+has(obj, "a.b.c"); // true or false
+```
+
+#### `del<T, P>(obj: T, path: P): boolean`
+
+Delete a deeply nested property.
+
+```ts
+del(obj, "a.b.c");
+```
+
+### Advanced Utilities
+
+#### `scan<T>(obj: T): Map<string, any>`
+
+Recursively get a flat map of dot-separated paths to values.
+
+```ts
+scan({ a: { b: 1, c: { d: 2 } } });
+// Map { "a.b" => 1, "a.c.d" => 2 }
+```
+
+#### `foreach<T>(obj: T, cb)`
+
+Call a function for each deep key.
+
+```ts
+foreach(obj, (path, value) => console.log(path, value));
+```
+
+#### `map<T>(obj: T, cb)`
+
+Transform all deep values in-place.
+
+```ts
+map(obj, (path, value) => typeof value === 'number' ? value * 2 : value);
+```
+
+#### `filter<T>(obj: T, cb)`
+
+Remove entries based on a predicate.
+
+```ts
+filter(obj, (path, value) => typeof value === 'string');
+```
+
+#### `merge<T, S>(target: T, source: S): T & S`
+
+Deep merge two objects.
+
+```ts
+merge({ a: 1 }, { b: { c: 2 } });
+// { a: 1, b: { c: 2 } }
+```
+
+#### `cache<T>(obj: T)`
+
+Create a cached interface for nested operations.
+
+```ts
+const cached = cache(myObject);
+cached.get("a.b");
+cached.set("x.y", 42);
+cached.refresh();
+```
+
+## Types
 
 ### `DeepKeyOf<T>`
 
-A recursive type that extracts all valid deep keys of an object `T` as dot-separated strings. Ignores primitive values.
+Recursively extracts all possible dot-separated keys in an object.
 
-### `get<T, P extends DeepKeyOf<T>>(obj: T, path: P, def?: PathValue<T, P>): PathValue<T, P>`
+### `DeepValueOf<T, P>`
 
-Returns the value at the nested `path` inside `obj`. Returns `def` if path doesn't exist.
+Given a type `T` and a key path `P`, returns the type at that path.
 
-### `set<T extends object>(obj: T, path: string, val: unknown): boolean`
+## Example
 
-Sets the value at the nested `path` inside `obj`. Creates intermediate objects as needed. Returns `true` if successful.
+```ts
+type Data = {
+  user: {
+    name: string;
+    preferences: {
+      theme: string;
+    };
+  };
+};
 
-### `has<T, P extends DeepKeyOf<T>>(obj: T, path: P): boolean`
-
-Returns `true` if the nested `path` exists inside `obj`, else `false`.
-
----
-
-## Why Use objmod?
-
-Managing deeply nested data is a pain in vanilla JavaScript — lots of manual checks, risk of runtime errors, and no type safety.
-
-**objmod** solves these problems elegantly by:
-
-* Leveraging TypeScript's advanced types for safe, autocompleted paths.
-* Eliminating the need for verbose, repetitive code.
-* Gracefully handling missing intermediate keys.
-* Offering a minimal but powerful API to improve your developer experience.
-
----
+type Keys = DeepKeyOf<Data>; // "user.name" | "user.preferences.theme"
+type ThemeType = DeepValueOf<Data, "user.preferences.theme">; // string
+```
 
 ## License
 
-MIT © Mahdi Najafzadeh
+MIT © 2025 Mahdi Najafzadeh
 
----
-
-Made with ❤️ and TypeScript expertise by Mahdi Najafzadeh

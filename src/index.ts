@@ -1,22 +1,17 @@
 /**
- * Primitive data types in JavaScript.
- * Includes string, number, boolean, null, undefined, symbol, and bigint.
- */
-type Primitive = string | number | boolean | null | undefined | symbol | bigint;
-/**
  * Recursive type that extracts deep keys from an object as dot-separated strings.
  * For primitive values, it returns never.
  * For objects, it returns keys and nested keys in "key" or "key.subkey" format.
  *
  * @template T The object type to extract keys from.
  */
-export type DeepKeyOf<T> = T extends Primitive
-	? never
-	: {
-			[K in keyof T & string]: T[K] extends Primitive
-				? K
-				: `${K}` | `${K}.${DeepKeyOf<T[K]>}`;
-		}[keyof T & string];
+export type DeepKeyOf<T> = T extends object
+	? {
+			[K in keyof T & string]: T[K] extends object
+				? `${K}` | `${K}.${DeepKeyOf<T[K]>}`
+				: K;
+		}[keyof T & string]
+	: never;
 /**
  * Recursively gets the type of the value located at the given dot-separated path in an object.
  * Returns unknown if the path does not exist.
@@ -24,16 +19,16 @@ export type DeepKeyOf<T> = T extends Primitive
  * @template T The object type.
  * @template P The path string, e.g. "a.b.c".
  */
-export type PathValue<
+export type DeepValueOf<
 	T,
 	P extends string,
 > = P extends `${infer Key}.${infer Rest}`
 	? Key extends keyof T
-		? PathValue<T[Key], Rest>
-		: unknown
+		? DeepValueOf<T[Key], Rest>
+		: never
 	: P extends keyof T
 		? T[P]
-		: unknown;
+		: never;
 /**
  * Retrieves a nested value from an object given a dot-separated path.
  * If the path does not exist, returns the default value if provided.
@@ -43,24 +38,23 @@ export type PathValue<
  *
  * @param {T} obj The object to get the value from.
  * @param {P} path The dot-separated path string.
- * @param {PathValue<T, P>} [def] Default value to return if the path is not found.
- * @returns {PathValue<T, P>} The value at the given path, or the default value.
+ * @param {DeepValueOf<T, P>} [def] Default value to return if the path is not found.
+ * @returns {DeepValueOf<T, P>} The value at the given path, or the default value.
  */
-export function get<T, P extends DeepKeyOf<T>>(
-	obj: T,
-	path: P,
-	def?: PathValue<T, P>,
-): PathValue<T, P> {
+export function get<
+	T extends object,
+	P extends DeepKeyOf<T>,
+	V extends DeepValueOf<T, P>,
+>(obj: T, path: P, def?: V): V {
 	const address = path.split(".") as string[];
 	let value: unknown = obj;
-
 	for (const key of address) {
 		if (typeof value !== "object" || value === null || !(key in value)) {
-			return def as PathValue<T, P>;
+			return def as V;
 		}
 		value = (value as Record<string, unknown>)[key];
 	}
-	return value as PathValue<T, P>;
+	return value as V;
 }
 /**
  * Sets a value at the given dot-separated path in an object.
@@ -71,20 +65,15 @@ export function get<T, P extends DeepKeyOf<T>>(
  * @param {T} obj The object to set the value in.
  * @param {string} path The dot-separated path string.
  * @param {unknown} val The value to set.
- * @returns {boolean} True if the value was successfully set, false otherwise (e.g. empty path).
  */
-export function set<T extends object>(
-	obj: T,
-	path: string,
-	val: unknown,
-): boolean {
+export function set<
+	T extends object,
+	P extends DeepKeyOf<T>,
+	V extends DeepValueOf<T, P>,
+>(obj: T, path: P, val: V | unknown) {
 	if (!path) return false;
-
 	const address = path.split(".").filter(Boolean);
-	if (address.length === 0) return false;
-
 	let value: Record<string, unknown> = obj as Record<string, unknown>;
-
 	for (let i = 0; i < address.length - 1; i++) {
 		const key = address[i] as string;
 		if (typeof value[key] !== "object" || value[key] === null) {
@@ -94,7 +83,6 @@ export function set<T extends object>(
 	}
 	const lastKey = address[address.length - 1] as string;
 	value[lastKey] = val;
-	return true;
 }
 /**
  * Checks if a nested path exists in an object.
@@ -106,10 +94,12 @@ export function set<T extends object>(
  * @param {P} path The dot-separated path string.
  * @returns {boolean} True if the path exists, false otherwise.
  */
-export function has<T, P extends DeepKeyOf<T>>(obj: T, path: P): boolean {
+export function has<T extends object, P extends DeepKeyOf<T>>(
+	obj: T,
+	path: P,
+): boolean {
 	const address = path.split(".") as string[];
 	let value: unknown = obj;
-
 	for (const key of address) {
 		if (typeof value !== "object" || value === null || !(key in value)) {
 			return false;
@@ -119,44 +109,217 @@ export function has<T, P extends DeepKeyOf<T>>(obj: T, path: P): boolean {
 	return true;
 }
 /**
- * scan object
+ * Deletes the property at the given dot-separated path from an object.
  *
- * @param obj object that must be scan
- * @param prefix is parameter for recursive calling
- * @param map Key-Value Map for store data
- * @returns
+ * @template T The object type.
+ * @template P The dot-separated path to delete.
+ *
+ * @param obj The object to modify.
+ * @param path The path of the property to delete.
+ * @returns True if deletion was successful, false otherwise.
  */
-export function scan<T extends Record<string, unknown>, P extends DeepKeyOf<T>>(
-	obj: T = {} as T,
-	prefix = "",
-	map = new Map<P, PathValue<T, P>>(),
-) {
-	for (const [K, V] of Object.entries(obj)) {
-		if (V && typeof V === "object") {
-			scan(V as T, prefix ? `${prefix}.${K}` : K, map);
-		} else {
-			map.set(K as P, V as PathValue<T, P>);
+export function del<T extends object, P extends DeepKeyOf<T>>(obj: T, path: P) {
+	const address = path.split(".") as string[];
+	let value: Record<string, unknown> = obj as Record<string, unknown>;
+	for (let i = 0; i < address.length - 1; i++) {
+		const key = address[i] as string;
+		if (
+			!(key in value) ||
+			typeof value[key] !== "object" ||
+			value[key] === null
+		) {
+			return false;
+		}
+		value = value[key] as Record<string, unknown>;
+	}
+	const lastKey = address[address.length - 1] as string;
+	return delete value[lastKey];
+}
+
+/**
+ * Recursively scans an object and builds a map of dot-separated paths to values.
+ *
+ * @template T The object type.
+ * @template P The deep key path type.
+ * @template V The value type.
+ *
+ * @param obj The object to scan.
+ * @param prefix Internal prefix for recursive path building (default: "").
+ * @param map (Optional) An existing map to populate.
+ * @returns A map of all deep paths to their corresponding values.
+ */
+export function scan<
+	T extends object,
+	P extends DeepKeyOf<T>,
+	V extends DeepValueOf<T, P>,
+>(obj: T, prefix = "", map = new Map<P, V>()) {
+	for (const [key, value] of Object.entries(obj)) {
+		const path = prefix ? `${prefix}.${key}` : key;
+		map.set(path as P, value as V);
+		if (value && typeof value === "object") {
+			scan(value as T, path, map);
 		}
 	}
 	return map;
 }
 
 /**
- * 
- * @param source 
- * @param target 
- * @returns 
+ * Deeply merges the source object into the target object using dot-separated paths.
+ *
+ * @template Target The target object type.
+ * @template Source The source object type.
+ * @template NewObjet The resulting object type.
+ *
+ * @param target The target object to receive merged values.
+ * @param source The source object whose values will be merged in.
+ * @returns The merged object.
  */
 export function merge<
-	TSource extends Record<string, unknown>,
-	PSource extends DeepKeyOf<TSource>,
-	TTarget extends Record<string, unknown>,
-	PTarget extends DeepKeyOf<TSource>,
->(source: TSource, target: TTarget) {
+	Target extends object,
+	Source extends object,
+	NewObjet extends Target & Source,
+>(target: Target, source: Source): NewObjet {
 	const map = scan(source);
-	for (const [K, V] of map.entries()) set(target, K, V);
-	return target as Record<
-		PSource & PTarget,
-		PathValue<TSource & TTarget, PSource & PTarget>
-	>;
+	map.forEach((value, path) => set(target, path as any, value));
+	return target as unknown as NewObjet;
+}
+
+/**
+ * Iterates over all deep key paths in the object and invokes the callback with each.
+ *
+ * @template T The object type.
+ * @template P The deep key path type.
+ * @template V The value type at each path.
+ * @template CallBack The callback type.
+ *
+ * @param obj The object to iterate.
+ * @param func The function to call for each path/value pair.
+ */
+export function foreach<
+	T extends object,
+	P extends DeepKeyOf<T>,
+	V extends DeepValueOf<T, P>,
+	CallBack extends (path: P, value: V) => any,
+>(obj: T, func: CallBack) {
+	const map = scan(obj);
+	map.forEach((value, path) => func(path as P, value as V));
+}
+
+/**
+ * Applies a transformation function to each value in the object.
+ * Updates each value with the result of the function.
+ *
+ * @template T The object type.
+ * @template P The path type.
+ * @template V The value type.
+ * @template CallBack The transformer function type.
+ *
+ * @param obj The object to transform.
+ * @param func The function to apply to each path/value pair.
+ */
+export function map<
+	T extends object,
+	P extends DeepKeyOf<T>,
+	V extends DeepValueOf<T, P>,
+	CallBack extends (path: P, value: V) => any,
+>(obj: T, func: CallBack) {
+	const map = scan(obj);
+	map.forEach((value, path) =>
+		set(obj, path as P, func(path as P, value as V)),
+	);
+}
+
+/**
+ * Removes entries from the object for which the predicate function returns false.
+ *
+ * @template T The object type.
+ * @template P The path type.
+ * @template V The value type.
+ * @template CallBack The filter function type.
+ *
+ * @param obj The object to filter.
+ * @param func The predicate function that decides whether to keep each path/value pair.
+ */
+export function filter<
+	T extends object,
+	P extends DeepKeyOf<T>,
+	V extends DeepValueOf<T, P>,
+	CallBack extends (path: P, value: V) => boolean,
+>(obj: T, func: CallBack) {
+	const map = scan(obj);
+	map.forEach((value, path) =>
+		func(path as P, value as V) ? null : del(obj as T, path as P),
+	);
+}
+
+/**
+ * Creates a caching wrapper for accessing and modifying deeply nested properties.
+ *
+ * @template T The object type.
+ * @template P The deep key path type.
+ * @template V The value type.
+ *
+ * @param obj The object to wrap.
+ * @returns An interface providing cached get/set/has operations and manual refresh.
+ */
+export function cache<
+	T extends object,
+	P extends DeepKeyOf<T>,
+	V extends DeepValueOf<T, P>,
+>(obj: T) {
+	const map = scan(obj);
+
+	/**
+	 * Gets a value from the cache or original object.
+	 *
+	 * @param path The path to retrieve.
+	 * @param def The default value if not found.
+	 * @returns The cached or resolved value.
+	 */
+	function _get(path: P, def?: V): V {
+		if (map.has(path)) return map.get(path) as V;
+		else {
+			const value = get(obj, path, def);
+			map.set(path, value);
+			return value;
+		}
+	}
+
+	/**
+	 * Sets a value in the object and updates the cache.
+	 *
+	 * @param path The path to set.
+	 * @param value The value to assign.
+	 * @returns True if set was successful.
+	 */
+	function _set(path: P, value: V) {
+		map.set(path, value);
+		return set(obj, path, value);
+	}
+
+	/**
+	 * Checks whether a value exists in the cache.
+	 *
+	 * @param path The path to check.
+	 * @returns True if cached.
+	 */
+	function _has(path: P): boolean {
+		return map.has(path);
+	}
+
+	/**
+	 * Clears and rebuilds the internal cache.
+	 */
+	function _refresh() {
+		map.clear();
+		scan(obj).forEach((value, path) => map.set(path, value));
+	}
+
+	return {
+		get: _get,
+		set: _set,
+		has: _has,
+		refresh: _refresh,
+		map: map,
+	};
 }
