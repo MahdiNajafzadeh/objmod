@@ -14,7 +14,8 @@ A lightweight and type-safe utility module for working with deeply nested object
 ## Installation
 
 ```bash
-npm install your-package-name
+npm install objmod
+npm install --save-dev @types/objmod
 ```
 
 Or just copy and paste the module into your project as it's completely dependency-free.
