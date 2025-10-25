@@ -47,12 +47,20 @@ export function get<
     V extends DeepValueOf<T, P>,
 >(obj: T, path: P, def?: V): V {
     const address = path.split(".") as string[];
-    let value: unknown = obj;
-    for (const key of address) {
-        if (typeof value !== "object" || value === null || !(key in value)) {
-            return def as V;
+    const length = address.length - 1;
+    let value = obj as Record<string, unknown>;
+    for (let i = 0; i < length; i += 1) {
+        const key = address[i];
+        if (key) {
+            if (
+                typeof value !== "object" ||
+                value === null ||
+                !(key in value)
+            ) {
+                return def as V;
+            }
+            value = value[key] as Record<string, unknown>;
         }
-        value = (value as Record<string, unknown>)[key];
     }
     return value as V;
 }
@@ -70,18 +78,22 @@ export function set<
     T extends object,
     P extends DeepKeyOf<T>,
     V extends DeepValueOf<T, P>,
->(obj: T, path: P, val: V | unknown) {
+>(obj: T, path: P, newvalue: V | unknown) {
     if (!path) return false;
-    const address = path.split(".").filter(Boolean);
-    let value: Record<string, unknown> = obj as Record<string, unknown>;
-    for (const key of address) {
-        if (typeof value[key] !== "object" || value[key] === null) {
-            value[key] = {};
+    const address = path.split(".");
+    const length = address.length - 1;
+    let value = obj as Record<string, unknown>;
+    for (let i = 0; i < length; i += 1) {
+        const key = address[i];
+        if (key) {
+            if (typeof value[key] !== "object" || value[key] === null) {
+                value[key] = {} as Record<string, unknown>;
+            }
+            value = value[key] as Record<string, unknown>;
         }
-        value = value[key] as Record<string, unknown>;
     }
-    const lastKey = address[address.length - 1] as string;
-    value[lastKey] = val;
+    const lastKey = address[length] as string;
+    value[lastKey] = newvalue;
 }
 /**
  * Checks if a nested path exists in an object.
@@ -98,12 +110,20 @@ export function has<T extends object, P extends DeepKeyOf<T>>(
     path: P,
 ): boolean {
     const address = path.split(".") as string[];
-    let value: unknown = obj;
-    for (const key of address) {
-        if (typeof value !== "object" || value === null || !(key in value)) {
-            return false;
+    const length = address.length - 1;
+    let value = obj as Record<string, unknown>;
+    for (let i = 0; i < length; i += 1) {
+        const key = address[i];
+        if (key) {
+            if (
+                typeof value !== "object" ||
+                value === null ||
+                !(key in value)
+            ) {
+                return false;
+            }
+            value = value[key] as Record<string, unknown>;
         }
-        value = (value as Record<string, unknown>)[key];
     }
     return true;
 }
@@ -123,20 +143,24 @@ export function del<
     V extends DeepValueOf<T, P>,
 >(obj: T, path: P): V {
     const address = path.split(".") as string[];
-    let value: Record<string, unknown> = obj as Record<string, unknown>;
-    for (const key of address) {
-        if (
-            !(key in value) ||
-            typeof value[key] !== "object" ||
-            value[key] === null
-        ) {
-            return undefined as V;
+    const length = address.length - 1;
+    let value = obj as Record<string, unknown>;
+    for (let i = 0; i < length; i += 1) {
+        const key = address[i];
+        if (key) {
+            if (
+                !(key in value) ||
+                typeof value[key] !== "object" ||
+                value[key] === null
+            ) {
+                return undefined as V;
+            }
+            value = value[key] as Record<string, unknown>;
         }
-        value = value[key] as Record<string, unknown>;
     }
-    const lastKey = address[address.length - 1] as string;
+    const lastKey = address[length] as string;
     const target = value[lastKey];
-    value[lastKey] = undefined;
+    delete value[lastKey];
     return target as V;
 }
 
