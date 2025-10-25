@@ -1,38 +1,38 @@
 {
-  "name": "objmod",
-  "version": "2.0.0",
-  "description": "type-safe object editor in javascript",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "module": "src/index.ts",
-  "type": "module",
-  "files": [
-    "dist",
-    "src"
-  ],
-  "scripts": {
-    "build": "tsc"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/MahdiNajafzadeh/objmod.git"
-  },
-  "keywords": [
-    "typescript",
-    "module",
-    "object",
-    "modular"
-  ],
-  "author": "Mahdi Najafzadeh <8ma8h3di3@gmail.com>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/MahdiNajafzadeh/objmod/issues"
-  },
-  "homepage": "https://github.com/MahdiNajafzadeh/objmod#readme",
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  }
+    "name": "objmod",
+    "version": "2.0.2",
+    "description": "type-safe object editor in javascript",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "module": "src/index.ts",
+    "type": "module",
+    "files": [
+        "dist",
+        "src"
+    ],
+    "scripts": {
+        "build": "tsc"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MahdiNajafzadeh/objmod.git"
+    },
+    "keywords": [
+        "typescript",
+        "module",
+        "object",
+        "modular"
+    ],
+    "author": "Mahdi Najafzadeh <8ma8h3di3@gmail.com>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/MahdiNajafzadeh/objmod/issues"
+    },
+    "homepage": "https://github.com/MahdiNajafzadeh/objmod#readme",
+    "devDependencies": {
+        "@types/bun": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    }
 }
