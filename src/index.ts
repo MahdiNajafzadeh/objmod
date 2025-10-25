@@ -74,8 +74,7 @@ export function set<
     if (!path) return false;
     const address = path.split(".").filter(Boolean);
     let value: Record<string, unknown> = obj as Record<string, unknown>;
-    for (let i = 0; i < address.length - 1; i++) {
-        const key = address[i] as string;
+    for (const key of address) {
         if (typeof value[key] !== "object" || value[key] === null) {
             value[key] = {};
         }
@@ -118,22 +117,27 @@ export function has<T extends object, P extends DeepKeyOf<T>>(
  * @param path The path of the property to delete.
  * @returns True if deletion was successful, false otherwise.
  */
-export function del<T extends object, P extends DeepKeyOf<T>>(obj: T, path: P) {
+export function del<
+    T extends object,
+    P extends DeepKeyOf<T>,
+    V extends DeepValueOf<T, P>,
+>(obj: T, path: P): V {
     const address = path.split(".") as string[];
     let value: Record<string, unknown> = obj as Record<string, unknown>;
-    for (let i = 0; i < address.length - 1; i++) {
-        const key = address[i] as string;
+    for (const key of address) {
         if (
             !(key in value) ||
             typeof value[key] !== "object" ||
             value[key] === null
         ) {
-            return false;
+            return undefined as V;
         }
         value = value[key] as Record<string, unknown>;
     }
     const lastKey = address[address.length - 1] as string;
-    return delete value[lastKey];
+    const target = value[lastKey];
+    value[lastKey] = undefined;
+    return target as V;
 }
 
 /**
