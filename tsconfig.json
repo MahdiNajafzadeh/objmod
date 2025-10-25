@@ -1,25 +1,34 @@
 {
-  "compilerOptions": {
-    "lib": ["ESNext","dom"],
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleDetection": "force",
-    "jsx": "react-jsx",
-    "allowJs": true,
-    "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,
-    "noEmit": false,
-    "declaration": true,
-    "emitDeclarationOnly": false,
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "strict": true,
-    "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
-  }
+    "compilerOptions": {
+        "lib": [
+            "ESNext"
+        ],
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleDetection": "force",
+        "allowJs": true,
+        "moduleResolution": "bundler",
+        "verbatimModuleSyntax": true,
+        "noEmit": false,
+        "declaration": true,
+        "emitDeclarationOnly": false,
+        "rootDir": "./src",
+        "outDir": "./dist",
+        "strict": true,
+        "skipLibCheck": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "noPropertyAccessFromIndexSignature": false
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "dist",
+        "example",
+        "node_modules"
+    ]
 }
